@@ -1,10 +1,44 @@
 {
-  "name": "genji.js",
   "version": "0.1.0",
-  "description": "Document-oriented, embedded, SQL database",
-  "main": "index.js",
-  "repository": "git@github.com:asdine/genji.js.git",
-  "author": "Asdine El Hrychy <asdine.elhrychy@gmail.com>",
   "license": "MIT",
-  "private": true
+  "repository": "git@github.com:asdine/genji.js.git",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=10"
+  },
+  "scripts": {
+    "start": "tsdx watch",
+    "build": "tsdx build",
+    "test": "tsdx test",
+    "lint": "tsdx lint",
+    "prepare": "tsdx build"
+  },
+  "peerDependencies": {},
+  "husky": {
+    "hooks": {
+      "pre-commit": "tsdx lint"
+    }
+  },
+  "prettier": {
+    "printWidth": 80,
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "es5"
+  },
+  "name": "genji.js",
+  "author": "Asdine El Hrychy",
+  "description": "Document-oriented, embedded, SQL database",
+  "module": "dist/genji.js.esm.js",
+  "devDependencies": {
+    "@types/jest": "^25.1.5",
+    "husky": "^4.2.3",
+    "tsdx": "^0.13.1",
+    "tslib": "^1.11.1",
+    "typescript": "^3.8.3"
+  }
 }
