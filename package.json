@@ -1,0 +1,10 @@
+{
+  "name": "genji.js",
+  "version": "0.1.0",
+  "description": "Document-oriented, embedded, SQL database",
+  "main": "index.js",
+  "repository": "git@github.com:asdine/genji.js.git",
+  "author": "Asdine El Hrychy <asdine.elhrychy@gmail.com>",
+  "license": "MIT",
+  "private": true
+}
