@@ -2,6 +2,7 @@ package simpleengine
 
 import (
 	"bytes"
+	"context"
 	"errors"
 
 	"github.com/asdine/genji/engine"
@@ -15,6 +16,14 @@ type item struct {
 
 func (i *item) Less(than btree.Item) bool {
 	return bytes.Compare(i.k, than.(*item).k) < 0
+}
+
+func (i *item) Key() []byte {
+	return i.k
+}
+
+func (i *item) ValueCopy(b []byte) ([]byte, error) {
+	return i.v, nil
 }
 
 type storeTx struct {
@@ -114,46 +123,87 @@ func (s *storeTx) Truncate() error {
 	return nil
 }
 
-func (s *storeTx) AscendGreaterOrEqual(start []byte, fn func(k, v []byte) error) (err error) {
-	iterator := btree.ItemIterator(func(i btree.Item) bool {
-		it := i.(*item)
-		if it.deleted {
-			return true
-		}
-		err = fn(it.k, it.v)
-		return err == nil
-	})
-
-	if len(start) == 0 {
-		s.tr.Ascend(iterator)
-	} else {
-		s.tr.AscendGreaterOrEqual(&item{k: start}, iterator)
+func (s *storeTx) NewIterator(cfg engine.IteratorConfig) engine.Iterator {
+	return &itemIterator{
+		reverse: cfg.Reverse,
+		tr:      s.tr,
 	}
-
-	return
 }
 
-func (s *storeTx) DescendLessOrEqual(pivot []byte, fn func(k, v []byte) error) (err error) {
-	if pivot == nil {
-		s.tr.Descend(btree.ItemIterator(func(i btree.Item) bool {
-			it := i.(*item)
-			if it.deleted {
-				return true
-			}
-			err = fn(it.k, it.v)
-			return err == nil
-		}))
-		return
+type itemIterator struct {
+	cancel  func()
+	reverse bool
+	tr      *btree.BTree
+	ch      chan *item
+	itm     *item
+}
+
+func (it *itemIterator) Seek(k []byte) {
+	if it.cancel != nil {
+		it.cancel()
 	}
 
-	s.tr.DescendLessOrEqual(&item{k: pivot}, btree.ItemIterator(func(i btree.Item) bool {
-		it := i.(*item)
-		if it.deleted {
+	ctx, cancel := context.WithCancel(context.Background())
+	it.cancel = cancel
+
+	it.ch = make(chan *item)
+
+	iterator := btree.ItemIterator(func(i btree.Item) bool {
+		itm := i.(*item)
+		if itm.deleted {
 			return true
 		}
-		err = fn(it.k, it.v)
-		return err == nil
-	}))
 
-	return
+		select {
+		case <-ctx.Done():
+			return false
+		case it.ch <- itm:
+		}
+
+		return true
+	})
+
+	go func() {
+		defer close(it.ch)
+
+		if it.reverse {
+			if len(k) == 0 {
+				it.tr.Descend(iterator)
+			} else {
+				it.tr.DescendLessOrEqual(&item{k: k}, iterator)
+			}
+		} else {
+			if len(k) == 0 {
+				it.tr.Ascend(iterator)
+			} else {
+				it.tr.AscendGreaterOrEqual(&item{k: k}, iterator)
+			}
+		}
+	}()
+
+	it.Next()
+}
+
+func (it *itemIterator) Next() {
+	it.itm = <-it.ch
+}
+
+func (it *itemIterator) Valid() bool {
+	if it.itm != nil {
+		return it.itm.k != nil
+	}
+
+	return false
+}
+
+func (it *itemIterator) Item() engine.Item {
+	return it.itm
+}
+
+func (it *itemIterator) Close() error {
+	if it.cancel != nil {
+		it.cancel()
+	}
+
+	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"syscall/js"
 
 	"github.com/asdine/genji"
+	"github.com/asdine/genji.js/src/bindings/simpleengine"
 	"github.com/asdine/genji/document"
 )
 
@@ -33,7 +34,7 @@ func runWithCallback(fn func(inputs []js.Value) (interface{}, error)) func(this 
 }
 
 func runDB(inputs []js.Value) (interface{}, error) {
-	db, err := genji.New(nil)
+	db, err := genji.New(simpleengine.NewEngine())
 	if err != nil {
 		return nil, err
 	}
@@ -45,14 +46,44 @@ func runDB(inputs []js.Value) (interface{}, error) {
 
 func dbExec(inputs []js.Value) (interface{}, error) {
 	db := openedDBs[inputs[0].Int()]
-	return nil, db.Exec(inputs[1].String())
+
+	var args []interface{}
+	for _, arg := range inputs[2:] {
+		var v interface{}
+
+		switch arg.Type() {
+		case js.TypeBoolean:
+			v = arg.Bool()
+		case js.TypeString:
+			v = arg.String()
+		case js.TypeNumber:
+			v = arg.Float()
+		}
+		args = append(args, v)
+	}
+	return nil, db.Exec(inputs[1].String(), args...)
 }
 
 func dbQuery(this js.Value, inputs []js.Value) interface{} {
 	callback := inputs[len(inputs)-1:][0]
-
 	db := openedDBs[inputs[0].Int()]
-	res, err := db.Query(inputs[1].String())
+
+	var args []interface{}
+	for _, arg := range inputs[2:] {
+		var v interface{}
+
+		switch arg.Type() {
+		case js.TypeBoolean:
+			v = arg.Bool()
+		case js.TypeString:
+			v = arg.String()
+		case js.TypeNumber:
+			v = arg.Float()
+		}
+		args = append(args, v)
+	}
+
+	res, err := db.Query(inputs[1].String(), args...)
 	if err != nil {
 		callback.Invoke(nil, err)
 		return nil
@@ -61,9 +92,12 @@ func dbQuery(this js.Value, inputs []js.Value) interface{} {
 	defer res.Close()
 
 	err = res.Iterate(func(d document.Document) error {
-		var m map[string]interface{}
+		m := make(map[string]interface{})
 
-		err := document.MapScan(d, &m)
+		err := d.Iterate(func(f string, v document.Value) error {
+			m[f] = v.V
+			return nil
+		})
 		if err != nil {
 			return err
 		}
@@ -73,6 +107,9 @@ func dbQuery(this js.Value, inputs []js.Value) interface{} {
 	})
 	if err != nil {
 		callback.Invoke(nil, err)
+		return nil
 	}
+
+	callback.Invoke(nil, nil)
 	return nil
 }
