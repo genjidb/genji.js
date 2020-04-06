@@ -17,8 +17,10 @@
     "build": "tsdx build",
     "test": "tsdx test",
     "lint": "tsdx lint",
-    "postbuild": "cd ./src/bindings && GOOS=js GOARCH=wasm go build -o ../../dist/genji.wasm",
-    "prepare": "tsdx build"
+    "wasm": "cd ./src/bindings && GOOS=js GOARCH=wasm go build -o ../../dist/genji.wasm",
+    "prepare": "tsdx build",
+    "pretest": "yarn run wasm",
+    "postbuild": "yarn run wasm"
   },
   "peerDependencies": {},
   "prettier": {
