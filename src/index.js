@@ -1,7 +1,7 @@
 import { Observable } from 'rxjs';
 import './bindings/wasm_exec';
 
-export async function initDatabase({ url }) {
+export async function initDatabase({ url = 'genji.wasm' }) {
   const go = new Go();
   const result = await WebAssembly.instantiateStreaming(fetch(url), go.importObject);
   go.run(result.instance);
