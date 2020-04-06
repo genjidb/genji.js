@@ -1,19 +1,26 @@
 {
   "version": "0.1.0",
   "license": "MIT",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
   "repository": "git@github.com:asdine/genji.js.git",
   "module": "src/index.js",
   "files": [
-    "dist/index.js",
-    "dist/genji.wasm"
+    "dist",
+    "src"
   ],
   "engines": {
     "node": ">=10"
   },
   "scripts": {
-    "build": "webpack",
-    "prebuild": "cd ./src/bindings && GOOS=js GOARCH=wasm go build -o genji.wasm"
+    "start": "tsdx watch",
+    "build": "tsdx build",
+    "test": "tsdx test",
+    "lint": "tsdx lint",
+    "postbuild": "cd ./src/bindings && GOOS=js GOARCH=wasm go build -o ../../dist/genji.wasm",
+    "prepare": "tsdx build"
   },
+  "peerDependencies": {},
   "prettier": {
     "printWidth": 80,
     "semi": true,
@@ -24,9 +31,11 @@
   "author": "Asdine El Hrychy",
   "description": "Document-oriented, embedded, SQL database",
   "devDependencies": {
-    "copy-webpack-plugin": "^5.1.1",
-    "webpack": "^4.42.1",
-    "webpack-cli": "^3.3.11"
+    "@types/jest": "^25.2.1",
+    "husky": "^4.2.3",
+    "tsdx": "^0.13.1",
+    "tslib": "^1.11.1",
+    "typescript": "^3.8.3"
   },
   "dependencies": {
     "rxjs": "^6.5.5"

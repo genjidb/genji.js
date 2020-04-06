@@ -85,7 +85,7 @@ func dbQuery(this js.Value, inputs []js.Value) interface{} {
 
 	res, err := db.Query(inputs[1].String(), args...)
 	if err != nil {
-		callback.Invoke(nil, err)
+		callback.Invoke(err, nil)
 		return nil
 	}
 
@@ -102,11 +102,11 @@ func dbQuery(this js.Value, inputs []js.Value) interface{} {
 			return err
 		}
 
-		callback.Invoke(m, nil)
+		callback.Invoke(nil, m)
 		return nil
 	})
 	if err != nil {
-		callback.Invoke(nil, err)
+		callback.Invoke(err, nil)
 		return nil
 	}
 
