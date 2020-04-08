@@ -1,21 +1,16 @@
 package simpleengine
 
 import (
-	"bytes"
-	"context"
 	"errors"
+	"sort"
+	"strings"
 
 	"github.com/asdine/genji/engine"
-	"github.com/google/btree"
 )
 
 type item struct {
 	k, v    []byte
 	deleted bool
-}
-
-func (i *item) Less(than btree.Item) bool {
-	return bytes.Compare(i.k, than.(*item).k) < 0
 }
 
 func (i *item) Key() []byte {
@@ -27,7 +22,8 @@ func (i *item) ValueCopy(b []byte) ([]byte, error) {
 }
 
 type storeTx struct {
-	tr *btree.BTree
+	*storeData
+
 	tx *transaction
 }
 
@@ -40,45 +36,41 @@ func (s *storeTx) Put(k, v []byte) error {
 		return errors.New("empty keys are forbidden")
 	}
 
-	it := &item{k: k}
-	if i := s.tr.Get(it); i != nil {
-		cur := i.(*item)
-
-		oldv, oldDeleted := cur.v, cur.deleted
-		cur.v = v
-		cur.deleted = false
+	it, ok := s.values[string(k)]
+	if ok {
+		oldit := *it
+		it.v = v
+		it.deleted = false
 
 		s.tx.onRollback = append(s.tx.onRollback, func() {
-			cur.v = oldv
-			cur.deleted = oldDeleted
+			s.values[string(k)] = &oldit
 		})
 
 		return nil
 	}
 
-	it.v = v
-	s.tr.ReplaceOrInsert(it)
+	it = &item{
+		k: k,
+		v: v,
+	}
+	s.values[string(k)] = it
+	s.keys = insertSorted(s.keys, string(k))
 
 	s.tx.onRollback = append(s.tx.onRollback, func() {
-		s.tr.Delete(it)
+		delete(s.values, string(k))
+		s.keys = deleteSorted(s.keys, string(k))
 	})
 
 	return nil
 }
 
 func (s *storeTx) Get(k []byte) ([]byte, error) {
-	it := s.tr.Get(&item{k: k})
-
-	if it == nil {
+	it, ok := s.values[string(k)]
+	if !ok || it.deleted {
 		return nil, engine.ErrKeyNotFound
 	}
 
-	i := it.(*item)
-	if i.deleted {
-		return nil, engine.ErrKeyNotFound
-	}
-
-	return it.(*item).v, nil
+	return it.v, nil
 }
 
 func (s *storeTx) Delete(k []byte) error {
@@ -86,24 +78,20 @@ func (s *storeTx) Delete(k []byte) error {
 		return engine.ErrTransactionReadOnly
 	}
 
-	it := s.tr.Get(&item{k: k})
-	if it == nil {
+	it, ok := s.values[string(k)]
+	if !ok || it.deleted {
 		return engine.ErrKeyNotFound
 	}
 
-	i := it.(*item)
-	if i.deleted {
-		return engine.ErrKeyNotFound
-	}
-
-	i.deleted = true
+	it.deleted = true
 
 	s.tx.onRollback = append(s.tx.onRollback, func() {
-		i.deleted = false
+		it.deleted = false
 	})
 
 	s.tx.onCommit = append(s.tx.onCommit, func() {
-		s.tr.Delete(i)
+		delete(s.values, string(k))
+		s.keys = deleteSorted(s.keys, string(k))
 	})
 	return nil
 }
@@ -113,11 +101,15 @@ func (s *storeTx) Truncate() error {
 		return engine.ErrTransactionReadOnly
 	}
 
-	old := s.tr
-	s.tr = btree.New(3)
+	oldValues := s.values
+	oldKeys := s.keys[:]
+
+	s.values = make(map[string]*item)
+	s.keys = nil
 
 	s.tx.onRollback = append(s.tx.onRollback, func() {
-		s.tr = old
+		s.values = oldValues
+		s.keys = oldKeys
 	})
 
 	return nil
@@ -126,84 +118,84 @@ func (s *storeTx) Truncate() error {
 func (s *storeTx) NewIterator(cfg engine.IteratorConfig) engine.Iterator {
 	return &itemIterator{
 		reverse: cfg.Reverse,
-		tr:      s.tr,
+		keys:    s.keys,
+		values:  s.values,
 	}
 }
 
 type itemIterator struct {
-	cancel  func()
 	reverse bool
-	tr      *btree.BTree
-	ch      chan *item
-	itm     *item
+	keys    []string
+	values  map[string]*item
+	index   int
 }
 
 func (it *itemIterator) Seek(k []byte) {
-	if it.cancel != nil {
-		it.cancel()
+	kk := string(k)
+	if it.reverse {
+		if len(k) == 0 {
+			it.index = len(it.keys) - 1
+			return
+		}
+		it.index = sort.Search(len(it.keys), func(i int) bool { return strings.Compare(it.keys[i], kk) >= 0 })
+		if it.keys[it.index] != kk && it.index > 0 {
+			it.index--
+		}
+		return
 	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	it.cancel = cancel
-
-	it.ch = make(chan *item)
-
-	iterator := btree.ItemIterator(func(i btree.Item) bool {
-		itm := i.(*item)
-		if itm.deleted {
-			return true
-		}
-
-		select {
-		case <-ctx.Done():
-			return false
-		case it.ch <- itm:
-		}
-
-		return true
-	})
-
-	go func() {
-		defer close(it.ch)
-
-		if it.reverse {
-			if len(k) == 0 {
-				it.tr.Descend(iterator)
-			} else {
-				it.tr.DescendLessOrEqual(&item{k: k}, iterator)
-			}
-		} else {
-			if len(k) == 0 {
-				it.tr.Ascend(iterator)
-			} else {
-				it.tr.AscendGreaterOrEqual(&item{k: k}, iterator)
-			}
-		}
-	}()
-
-	it.Next()
+	if len(k) == 0 {
+		it.index = 0
+		return
+	}
+	it.index = sort.Search(len(it.keys), func(i int) bool { return strings.Compare(it.keys[i], kk) >= 0 })
 }
 
 func (it *itemIterator) Next() {
-	it.itm = <-it.ch
+	if it.reverse {
+		for it.index-1 >= -1 {
+			it.index--
+			if it.index >= 0 && !it.values[string(it.keys[it.index])].deleted {
+				return
+			}
+		}
+		return
+	}
+
+	it.index++
+	for it.index < len(it.keys) && it.values[string(it.keys[it.index])].deleted {
+		it.index++
+	}
 }
 
 func (it *itemIterator) Valid() bool {
-	if it.itm != nil {
-		return it.itm.k != nil
-	}
-
-	return false
+	return it.index >= 0 && it.index < len(it.keys)
 }
 
 func (it *itemIterator) Item() engine.Item {
-	return it.itm
+	return it.values[string(it.keys[it.index])]
 }
 
 func (it *itemIterator) Close() error {
-	if it.cancel != nil {
-		it.cancel()
+	return nil
+}
+
+func insertSorted(keys []string, el string) []string {
+	index := sort.Search(len(keys), func(i int) bool { return strings.Compare(keys[i], el) > 0 })
+	keys = append(keys, "")
+	copy(keys[index+1:], keys[index:])
+	keys[index] = el
+	return keys
+}
+
+func deleteSorted(keys []string, el string) []string {
+	if len(keys) == 0 {
+		return keys
+	}
+	index := sort.Search(len(keys), func(i int) bool { return strings.Compare(keys[i], el) >= 0 })
+	if index >= len(keys) || keys[index] != el {
+		return keys
 	}
 
-	return nil
+	copy(keys[index:], keys[index+1:])
+	return keys[:len(keys)-1]
 }

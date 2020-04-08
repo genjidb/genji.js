@@ -10,8 +10,6 @@ import (
 	"github.com/asdine/genji/document"
 )
 
-//go:generate cp $GOROOT/misc/wasm/wasm_exec.js .
-
 func main() {
 	js.Global().Set("runDB", js.FuncOf(runWithCallback(runDB)))
 	js.Global().Set("dbExec", js.FuncOf(runWithCallback(dbExec)))

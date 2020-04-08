@@ -18,4 +18,6 @@ docker run \
     -v $TMPGOPATH:/go \
     -v `pwd`:/dist \
     -e "GOPATH=/go" \
-    tinygo/tinygo:0.12.0 tinygo build -o /dist/wasm.wasm -target wasm --no-debug github.com/asdine/genji.js/src/bindings
+    tinygo/tinygo:0.12.0 tinygo build -o /dist/genji.wasm -target wasm --no-debug github.com/asdine/genji.js/src/bindings
+
+mv genji.wasm ../../dist/.

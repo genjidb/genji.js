@@ -7,19 +7,23 @@ import (
 	"sync"
 
 	"github.com/asdine/genji/engine"
-	"github.com/google/btree"
 )
 
 type Engine struct {
 	closed bool
-	stores map[string]*btree.BTree
+	stores map[string]*storeData
 
 	mu sync.RWMutex
 }
 
+type storeData struct {
+	keys   []string
+	values map[string]*item
+}
+
 func NewEngine() *Engine {
 	return &Engine{
-		stores: make(map[string]*btree.BTree),
+		stores: make(map[string]*storeData),
 	}
 }
 
@@ -101,12 +105,15 @@ func (tx *transaction) Commit() error {
 }
 
 func (tx *transaction) GetStore(name string) (engine.Store, error) {
-	tr, ok := tx.ng.stores[name]
+	sd, ok := tx.ng.stores[name]
 	if !ok {
 		return nil, engine.ErrStoreNotFound
 	}
 
-	return &storeTx{tx: tx, tr: tr}, nil
+	return &storeTx{
+		tx:        tx,
+		storeData: sd,
+	}, nil
 }
 
 func (tx *transaction) ListStores(prefix string) ([]string, error) {
@@ -132,9 +139,9 @@ func (tx *transaction) CreateStore(name string) error {
 		return engine.ErrStoreAlreadyExists
 	}
 
-	tr := btree.New(3)
-
-	tx.ng.stores[name] = tr
+	tx.ng.stores[name] = &storeData{
+		values: make(map[string]*item),
+	}
 
 	tx.onRollback = append(tx.onRollback, func() {
 		delete(tx.ng.stores, name)

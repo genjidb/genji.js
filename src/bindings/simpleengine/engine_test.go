@@ -13,14 +13,14 @@ func builder() (engine.Engine, func()) {
 	return ng, func() { ng.Close() }
 }
 
-func TestMemoryEngine(t *testing.T) {
+func Testsimpleengine(t *testing.T) {
 	enginetest.TestSuite(t, builder)
 }
 
-func BenchmarkMemoryEngineStorePut(b *testing.B) {
+func BenchmarksimpleengineStorePut(b *testing.B) {
 	enginetest.BenchmarkStorePut(b, builder)
 }
 
-func BenchmarkMemoryEngineStoreScan(b *testing.B) {
+func BenchmarksimpleengineStoreScan(b *testing.B) {
 	enginetest.BenchmarkStoreScan(b, builder)
 }
