@@ -1,5 +1,4 @@
-import { Observable } from 'rxjs';
-import './bindings/wasm_exec.js';
+import Go from './go';
 
 export async function initDatabase(cfg: { url: string } = { url: 'genji.wasm' }) {
   const go = new Go();
@@ -42,21 +41,65 @@ class Database {
     })
   }
 
-  query(query: string, ...args: any) {
-    return new Observable(observer => {
-      dbQuery(this.id, query, ...args, (err: any, document: Object) => {
+  query(query: string, ...args: any): Stream {
+    return new Stream(this.id, query, args);
+  }
+};
+
+class Stream {
+  id: number;
+  query: string;
+  args: any[];
+  pipeline: ((document: Object) => Object | null)[];
+
+  constructor(id: number, query: string, ...args: any) {
+    this.id = id;
+    this.query = query;
+    this.args = args;
+    this.pipeline = [];
+  }
+
+  callback(err: any, document: Object) {
+    if (err) {
+      return
+    }
+
+    if (!document) {
+      return;
+    }
+  }
+
+  forEach(cb: (document: Object) => void) {
+    return new Promise((resolve, reject) => {
+      dbQuery(this.id, this.query, ...this.args, (err: any, document: Object) => {
         if (err) {
-          observer.error(err)
+          reject(err);
           return
         }
 
         if (!document) {
-          observer.complete();
-          return;
+          resolve();
+          return
         }
 
-        observer.next(document);
+        for (const fn of this.pipeline) {
+          const ret = fn(document);
+          if (!ret) {
+            return
+          }
+          document = ret;
+        }
+
+        cb(document)
       })
-    })
+    });
   }
-};
+
+  map(cb: (document: Object) => Object) {
+    this.pipeline.push(cb);
+  }
+
+  filter(cb: (document: Object) => Boolean) {
+    this.pipeline.push((v) => cb(v) ? v : null);
+  }
+}
