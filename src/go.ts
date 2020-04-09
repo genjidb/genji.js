@@ -1,18 +1,17 @@
-const encoder = new TextEncoder();
-const decoder = new TextDecoder("utf-8");
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 
-let outputBuf = "";
+// @ts-nocheck
 
 const enosys = () => {
     const err = new Error("not implemented");
-    // @ts-ignore
     err.code = "ENOSYS";
     return err;
 };
 
-// @ts-ignore
 if (!global.fs) {
-    // @ts-ignore
+    let outputBuf = "";
     global.fs = {
         constants: { O_WRONLY: -1, O_RDWR: -1, O_CREAT: -1, O_TRUNC: -1, O_APPEND: -1, O_EXCL: -1 }, // unused
         writeSync(fd, buf) {
@@ -58,23 +57,10 @@ if (!global.fs) {
     };
 }
 
+const encoder = new TextEncoder("utf-8");
+const decoder = new TextDecoder("utf-8");
+
 export default class Go {
-    argv: string[];
-    env: {};
-    exit: (code: any) => void;
-    _exitPromise: Promise<unknown>;
-    _resolveExitPromise: (value?: unknown) => void;
-    _pendingEvent: any;
-    _scheduledTimeouts: Map<any, any>;
-    _nextCallbackTimeoutID: number;
-    mem: DataView;
-    _values: (number | boolean | this | NodeJS.Global | null)[];
-    _inst: any;
-    _goRefCounts: any[];
-    _ids: Map<any, any>;
-    _idPool: any[];
-    exited: boolean;
-    importObject: {};
     constructor() {
         this.argv = ["js"];
         this.env = {};
@@ -90,18 +76,18 @@ export default class Go {
         this._scheduledTimeouts = new Map();
         this._nextCallbackTimeoutID = 1;
 
-        const setInt64 = (addr: number, v: number) => {
+        const setInt64 = (addr, v) => {
             this.mem.setUint32(addr + 0, v, true);
             this.mem.setUint32(addr + 4, Math.floor(v / 4294967296), true);
         }
 
-        const getInt64 = (addr: number) => {
+        const getInt64 = (addr) => {
             const low = this.mem.getUint32(addr + 0, true);
             const high = this.mem.getInt32(addr + 4, true);
             return low + high * 4294967296;
         }
 
-        const loadValue = (addr: number): any => {
+        const loadValue = (addr) => {
             const f = this.mem.getFloat64(addr, true);
             if (f === 0) {
                 return undefined;
@@ -224,12 +210,11 @@ export default class Go {
                     const fd = getInt64(sp + 8);
                     const p = getInt64(sp + 16);
                     const n = this.mem.getInt32(sp + 24, true);
-                    // @ts-ignore
-                    global.fs.writeSync(fd, new Uint8Array(this._inst.exports.mem.buffer, p, n));
+                    fs.writeSync(fd, new Uint8Array(this._inst.exports.mem.buffer, p, n));
                 },
 
                 // func resetMemoryDataView()
-                "runtime.resetMemoryDataView": () => {
+                "runtime.resetMemoryDataView": (sp) => {
                     this.mem = new DataView(this._inst.exports.mem.buffer);
                 },
 
@@ -386,7 +371,7 @@ export default class Go {
 
                 // func valueInstanceOf(v ref, t ref) bool
                 "syscall/js.valueInstanceOf": (sp) => {
-                    this.mem.setUint8(sp + 24, (loadValue(sp + 8) instanceof loadValue(sp + 16)) ? 1 : 0);
+                    this.mem.setUint8(sp + 24, loadValue(sp + 8) instanceof loadValue(sp + 16));
                 },
 
                 // func copyBytesToGo(dst []byte, src ref) (int, bool)
@@ -457,7 +442,7 @@ export default class Go {
 
         const argc = this.argv.length;
 
-        const argvPtrs = [] as any[];
+        const argvPtrs = [];
         this.argv.forEach((arg) => {
             argvPtrs.push(strPtr(arg));
         });
@@ -496,11 +481,11 @@ export default class Go {
     _makeFuncWrapper(id) {
         const go = this;
         return function () {
-            // @ts-ignore: Unreachable code error
-            const event: any = { id: id, this: this, args: arguments };
+            const event = { id: id, this: this, args: arguments };
             go._pendingEvent = event;
             go._resume();
             return event.result;
         };
     }
 }
+
