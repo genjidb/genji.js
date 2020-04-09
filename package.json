@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.1.0-beta",
   "license": "MIT",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -18,7 +18,8 @@
     "test": "tsdx test",
     "lint": "tsdx lint",
     "wasm": "cd ./src/bindings && GOOS=js GOARCH=wasm go build -o ../../dist/genji.wasm",
-    "prepare": "tsdx build",
+    "prepare": "yarn run wasm",
+    "prepublish": "tsdx build",
     "postbuild": "yarn run wasm"
   },
   "peerDependencies": {},
@@ -28,7 +29,7 @@
     "singleQuote": true,
     "trailingComma": "es5"
   },
-  "name": "genji",
+  "name": "@asdine/genji",
   "author": "Asdine El Hrychy",
   "description": "Document-oriented, embedded, SQL database",
   "devDependencies": {

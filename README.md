@@ -20,13 +20,13 @@ The code is compatible with [TinyGo](https://github.com/tinygo-org/tinygo) and p
 Install Genji
 
 ```bash
-yarn add genji
+yarn add @asdine/genji
 ```
 
 Copy the wasm file from `node_modules` into your public directory
 
 ```bash
-cp node_modules/genji/genji.wasm public/
+cp node_modules/@asdine/genji/genji.wasm public/
 ```
 
 Or if you are using Webpack, add this to your config, after installing the `copy-webpack-plugin` loader :
@@ -42,7 +42,7 @@ module.exports = {
     ...
     plugins: [
         new CopyWebpackPlugin([
-            { from: 'node_modules/genji/dist/genji.wasm' }
+            { from: 'node_modules/@asdine/genji/dist/genji.wasm' }
         ])
     ]
 }
@@ -51,7 +51,7 @@ module.exports = {
 ## Usage
 
 ```javascript
-import { initDatabase } from 'genji';
+import { initDatabase } from '@asdine/genji';
 
 async function run() {
     const genji = await initDatabase();
