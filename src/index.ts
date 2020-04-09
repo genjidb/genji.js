@@ -2,6 +2,7 @@ import Go from './go';
 
 export async function initDatabase(cfg: { url: string } = { url: 'genji.wasm' }) {
   const go = new Go();
+  // @ts-ignore
   const result = await WebAssembly.instantiateStreaming(fetch(cfg.url), go.importObject);
   go.run(result.instance);
   return new Genji();
