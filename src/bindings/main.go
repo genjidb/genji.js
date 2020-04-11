@@ -22,11 +22,11 @@ func main() {
 		return wrapper.OpenDB()
 	})))
 	js.Global().Set("dbExec", js.FuncOf(runWithCallback(func(inputs []js.Value) (interface{}, error) {
-		if len(inputs) < 2 {
+		if len(inputs) < 3 {
 			return nil, errors.New("missing arguments")
 		}
 
-		return nil, wrapper.Exec(inputs[0].Int(), inputs[1].String(), inputs[2:]...)
+		return nil, wrapper.Exec(inputs[0].Int(), inputs[1].String(), jsArrayToSlice(inputs[2]))
 	})))
 	js.Global().Set("dbQuery", js.FuncOf(func(this js.Value, inputs []js.Value) interface{} {
 		if len(inputs) < 3 {
@@ -39,7 +39,7 @@ func main() {
 		err := wrapper.Query(inputs[0].Int(), func(m map[string]interface{}) error {
 			callback.Invoke(nil, m)
 			return nil
-		}, inputs[1].String(), inputs[2:]...)
+		}, inputs[1].String(), jsArrayToSlice(inputs[2]))
 		if err != nil {
 			callback.Invoke(err.Error(), nil)
 			return nil
@@ -77,13 +77,13 @@ func (w *GenjiWrapper) OpenDB() (int, error) {
 }
 
 // Exec calls Genji's db.Exec method on the database identified by the id passed as first argument.
-func (w *GenjiWrapper) Exec(id int, query string, args ...js.Value) error {
+func (w *GenjiWrapper) Exec(id int, query string, args []js.Value) error {
 	db, ok := w.dbs[id]
 	if !ok {
 		return fmt.Errorf("unknown database id %d", id)
 	}
 
-	params, err := jsValuesToParams(args...)
+	params, err := jsValuesToParams(args)
 	if err != nil {
 		return err
 	}
@@ -92,13 +92,13 @@ func (w *GenjiWrapper) Exec(id int, query string, args ...js.Value) error {
 }
 
 // Query calls Genji's db.Query method.
-func (w *GenjiWrapper) Query(id int, cb func(m map[string]interface{}) error, query string, args ...js.Value) error {
+func (w *GenjiWrapper) Query(id int, cb func(m map[string]interface{}) error, query string, args []js.Value) error {
 	db, ok := w.dbs[id]
 	if !ok {
 		return fmt.Errorf("unknown database id %d", id)
 	}
 
-	params, err := jsValuesToParams(args...)
+	params, err := jsValuesToParams(args)
 	if err != nil {
 		return err
 	}
@@ -128,29 +128,11 @@ func runWithCallback(fn func(inputs []js.Value) (interface{}, error)) func(this 
 	return func(this js.Value, inputs []js.Value) interface{} {
 		callback := inputs[len(inputs)-1:][0]
 		ret, err := fn(inputs[:len(inputs)-1])
-		callback.Invoke(err.Error(), ret)
+		if err != nil {
+			callback.Invoke(err.Error(), nil)
+		} else {
+			callback.Invoke(nil, ret)
+		}
 		return nil
 	}
-}
-
-func jsValuesToParams(values ...js.Value) ([]interface{}, error) {
-	params := make([]interface{}, 0, len(values))
-	for _, value := range values {
-		var v interface{}
-
-		switch value.Type() {
-		case js.TypeBoolean:
-			v = value.Bool()
-		case js.TypeString:
-			v = value.String()
-		case js.TypeNumber:
-			v = value.Float()
-		default:
-			return nil, fmt.Errorf("incompatible value %v", value)
-		}
-
-		params = append(params, v)
-	}
-
-	return params, nil
 }

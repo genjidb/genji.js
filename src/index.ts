@@ -11,7 +11,7 @@ export async function initDatabase(cfg: { url: string } = { url: 'genji.wasm' })
 export class Genji {
   async Database() {
     return new Promise<Database>((resolve, reject) => {
-      runDB((err: any, id: number) => {
+      openDB((err: any, id: number) => {
         if (err) {
           reject(err);
           return
@@ -32,7 +32,7 @@ class Database {
 
   exec(query: string, ...args: any) {
     return new Promise((resolve, reject) => {
-      dbExec(this.id, query, ...args, (err: any) => {
+      dbExec(this.id, query, args, (err: any) => {
         if (err) {
           reject(err);
         }
@@ -53,7 +53,7 @@ class Stream {
   args: any[];
   pipeline: ((document: Object) => Object | null)[];
 
-  constructor(id: number, query: string, ...args: any) {
+  constructor(id: number, query: string, args: any[]) {
     this.id = id;
     this.query = query;
     this.args = args;
@@ -72,7 +72,7 @@ class Stream {
 
   forEach(cb: (document: Object) => void) {
     return new Promise((resolve, reject) => {
-      dbQuery(this.id, this.query, ...this.args, (err: any, document: Object) => {
+      dbQuery(this.id, this.query, this.args, (err: any, document: Object) => {
         if (err) {
           reject(err);
           return
