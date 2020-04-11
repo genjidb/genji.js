@@ -3,6 +3,9 @@
 package main
 
 import (
+	"errors"
+	"fmt"
+	"sync"
 	"syscall/js"
 
 	"github.com/asdine/genji"
@@ -11,85 +14,102 @@ import (
 )
 
 func main() {
-	js.Global().Set("runDB", js.FuncOf(runWithCallback(runDB)))
-	js.Global().Set("dbExec", js.FuncOf(runWithCallback(dbExec)))
-	js.Global().Set("dbQuery", js.FuncOf(dbQuery))
+	wrapper := GenjiWrapper{
+		dbs: make(map[int]*genji.DB),
+	}
+
+	js.Global().Set("openDB", js.FuncOf(runWithCallback(func(inputs []js.Value) (interface{}, error) {
+		return wrapper.OpenDB()
+	})))
+	js.Global().Set("dbExec", js.FuncOf(runWithCallback(func(inputs []js.Value) (interface{}, error) {
+		if len(inputs) < 2 {
+			return nil, errors.New("missing arguments")
+		}
+
+		return nil, wrapper.Exec(inputs[0].Int(), inputs[1].String(), inputs[2:]...)
+	})))
+	js.Global().Set("dbQuery", js.FuncOf(func(this js.Value, inputs []js.Value) interface{} {
+		if len(inputs) < 3 {
+			return errors.New("missing arguments")
+		}
+
+		callback := inputs[len(inputs)-1:][0]
+		inputs = inputs[:len(inputs)-1]
+
+		err := wrapper.Query(inputs[0].Int(), func(m map[string]interface{}) error {
+			callback.Invoke(nil, m)
+			return nil
+		}, inputs[1].String(), inputs[2:]...)
+		if err != nil {
+			callback.Invoke(err.Error(), nil)
+			return nil
+		}
+
+		callback.Invoke(nil, nil)
+		return nil
+	}))
 
 	select {}
 }
 
-var openedDBs = map[int]*genji.DB{}
+// GenjiWrapper is a type that allows opening databases and running queries on them.
+// It keeps a reference on all opened databases.
+type GenjiWrapper struct {
+	dbs map[int]*genji.DB
 
-var id int
-
-func runWithCallback(fn func(inputs []js.Value) (interface{}, error)) func(this js.Value, inputs []js.Value) interface{} {
-	return func(this js.Value, inputs []js.Value) interface{} {
-		callback := inputs[len(inputs)-1:][0]
-		ret, err := fn(inputs[:len(inputs)-1])
-		callback.Invoke(err, ret)
-		return nil
-	}
+	lastid int
+	m      sync.RWMutex
 }
 
-func runDB(inputs []js.Value) (interface{}, error) {
+// OpenDB opens a database and returns an id that can be used by the Javascript code to select
+// the right database when running a query.
+func (w *GenjiWrapper) OpenDB() (int, error) {
 	db, err := genji.New(simpleengine.NewEngine())
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	id++
-	openedDBs[id] = db
-	return id, nil
+	w.m.Lock()
+	defer w.m.Unlock()
+	w.lastid++
+	w.dbs[w.lastid] = db
+	return w.lastid, nil
 }
 
-func dbExec(inputs []js.Value) (interface{}, error) {
-	db := openedDBs[inputs[0].Int()]
-
-	var args []interface{}
-	for _, arg := range inputs[2:] {
-		var v interface{}
-
-		switch arg.Type() {
-		case js.TypeBoolean:
-			v = arg.Bool()
-		case js.TypeString:
-			v = arg.String()
-		case js.TypeNumber:
-			v = arg.Float()
-		}
-		args = append(args, v)
-	}
-	return nil, db.Exec(inputs[1].String(), args...)
-}
-
-func dbQuery(this js.Value, inputs []js.Value) interface{} {
-	callback := inputs[len(inputs)-1:][0]
-	db := openedDBs[inputs[0].Int()]
-
-	var args []interface{}
-	for _, arg := range inputs[2:] {
-		var v interface{}
-
-		switch arg.Type() {
-		case js.TypeBoolean:
-			v = arg.Bool()
-		case js.TypeString:
-			v = arg.String()
-		case js.TypeNumber:
-			v = arg.Float()
-		}
-		args = append(args, v)
+// Exec calls Genji's db.Exec method on the database identified by the id passed as first argument.
+func (w *GenjiWrapper) Exec(id int, query string, args ...js.Value) error {
+	db, ok := w.dbs[id]
+	if !ok {
+		return fmt.Errorf("unknown database id %d", id)
 	}
 
-	res, err := db.Query(inputs[1].String(), args...)
+	params, err := jsValuesToParams(args...)
 	if err != nil {
-		callback.Invoke(err, nil)
-		return nil
+		return err
 	}
 
+	return db.Exec(query, params...)
+}
+
+// Query calls Genji's db.Query method.
+func (w *GenjiWrapper) Query(id int, cb func(m map[string]interface{}) error, query string, args ...js.Value) error {
+	db, ok := w.dbs[id]
+	if !ok {
+		return fmt.Errorf("unknown database id %d", id)
+	}
+
+	params, err := jsValuesToParams(args...)
+	if err != nil {
+		return err
+	}
+
+	res, err := db.Query(query, params...)
+	if err != nil {
+		return err
+	}
 	defer res.Close()
 
-	err = res.Iterate(func(d document.Document) error {
+	return res.Iterate(func(d document.Document) error {
 		m := make(map[string]interface{})
 
 		err := d.Iterate(func(f string, v document.Value) error {
@@ -100,14 +120,37 @@ func dbQuery(this js.Value, inputs []js.Value) interface{} {
 			return err
 		}
 
-		callback.Invoke(nil, m)
-		return nil
+		return cb(m)
 	})
-	if err != nil {
-		callback.Invoke(err, nil)
+}
+
+func runWithCallback(fn func(inputs []js.Value) (interface{}, error)) func(this js.Value, inputs []js.Value) interface{} {
+	return func(this js.Value, inputs []js.Value) interface{} {
+		callback := inputs[len(inputs)-1:][0]
+		ret, err := fn(inputs[:len(inputs)-1])
+		callback.Invoke(err.Error(), ret)
 		return nil
 	}
+}
 
-	callback.Invoke(nil, nil)
-	return nil
+func jsValuesToParams(values ...js.Value) ([]interface{}, error) {
+	params := make([]interface{}, 0, len(values))
+	for _, value := range values {
+		var v interface{}
+
+		switch value.Type() {
+		case js.TypeBoolean:
+			v = value.Bool()
+		case js.TypeString:
+			v = value.String()
+		case js.TypeNumber:
+			v = value.Float()
+		default:
+			return nil, fmt.Errorf("incompatible value %v", value)
+		}
+
+		params = append(params, v)
+	}
+
+	return params, nil
 }
