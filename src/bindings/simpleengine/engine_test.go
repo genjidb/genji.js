@@ -3,9 +3,9 @@ package simpleengine_test
 import (
 	"testing"
 
-	"github.com/asdine/genji.js/src/bindings/simpleengine"
-	"github.com/asdine/genji/engine"
-	"github.com/asdine/genji/engine/enginetest"
+	"github.com/genjidb/genji.js/src/bindings/simpleengine"
+	"github.com/genjidb/genji/engine"
+	"github.com/genjidb/genji/engine/enginetest"
 )
 
 func builder() (engine.Engine, func()) {

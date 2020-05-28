@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/asdine/genji/engine"
+	"github.com/genjidb/genji/engine"
 )
 
 type Engine struct {

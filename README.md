@@ -1,7 +1,7 @@
 <h1 align="center"> Genji.js </h1>
 <p align="center">
   <a href="https://genji.dev">
-    <img alt="Genji" title="Genji" src="https://raw.githubusercontent.com/asdine/genji/master/docs/assets/icons/logo.svg?sanitize=true" width="100">
+    <img alt="Genji" title="Genji" src="https://raw.githubusercontent.com/genjidb/genji/master/docs/assets/icons/logo.svg?sanitize=true" width="100">
   </a>
 </p>
 
@@ -9,7 +9,7 @@
   Document-oriented, embedded, SQL database
 </p>
 
-Experimental wrapper around the [Genji](https://github.com/asdine/genji) database.
+Experimental wrapper around the [Genji](https://github.com/genjidb/genji) database.
 
 It's functional but, currently, the compiled WebAssembly file is too big (~3mb) to be objectively usable in production.
 
@@ -20,13 +20,13 @@ The code is compatible with [TinyGo](https://github.com/tinygo-org/tinygo) and p
 Install Genji
 
 ```bash
-yarn add @asdine/genji
+yarn add @genjidb/genji
 ```
 
 Copy the wasm file from `node_modules` into your public directory
 
 ```bash
-cp node_modules/@asdine/genji/genji.wasm public/
+cp node_modules/@genjidb/genji/genji.wasm public/
 ```
 
 Or if you are using Webpack, add this to your config, after installing the `copy-webpack-plugin` loader :
@@ -42,7 +42,7 @@ module.exports = {
     ...
     plugins: [
         new CopyWebpackPlugin([
-            { from: 'node_modules/@asdine/genji/dist/genji.wasm' }
+            { from: 'node_modules/@genjidb/genji/dist/genji.wasm' }
         ])
     ]
 }
@@ -51,19 +51,18 @@ module.exports = {
 ## Usage
 
 ```javascript
-import { initDatabase } from '@asdine/genji';
+import { initDatabase } from '@genjidb/genji';
 
 async function run() {
-    const genji = await initDatabase();
-    const db = await genji.Database();
-    await db.exec("CREATE TABLE foo");
-    await db.exec("INSERT INTO foo (a) VALUES (1), (2), (3)");
+  const genji = await initDatabase();
+  const db = await genji.Database();
+  await db.exec('CREATE TABLE foo');
+  await db.exec('INSERT INTO foo (a) VALUES (1), (2), (3)');
 
-    db.query("SELECT * FROM foo").
-        forEach((v) => console.log(v));
+  db.query('SELECT * FROM foo').forEach(v => console.log(v));
 }
 
-run()
+run();
 ```
 
 ## Build from source

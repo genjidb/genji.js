@@ -3,7 +3,7 @@
   "license": "MIT",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
-  "repository": "git@github.com:asdine/genji.js.git",
+  "repository": "git@github.com:genjidb/genji.js.git",
   "module": "src/index.js",
   "files": [
     "dist",
@@ -29,7 +29,7 @@
     "singleQuote": true,
     "trailingComma": "es5"
   },
-  "name": "@asdine/genji",
+  "name": "@genjidb/genji",
   "author": "Asdine El Hrychy",
   "description": "Document-oriented, embedded, SQL database",
   "devDependencies": {

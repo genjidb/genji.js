@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/asdine/genji/engine"
+	"github.com/genjidb/genji/engine"
 )
 
 type item struct {

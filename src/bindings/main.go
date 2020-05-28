@@ -8,9 +8,9 @@ import (
 	"sync"
 	"syscall/js"
 
-	"github.com/asdine/genji"
-	"github.com/asdine/genji.js/src/bindings/simpleengine"
-	"github.com/asdine/genji/document"
+	"github.com/genjidb/genji"
+	"github.com/genjidb/genji.js/src/bindings/simpleengine"
+	"github.com/genjidb/genji/document"
 )
 
 func main() {

@@ -10,14 +10,14 @@ go mod vendor
 
 mv vendor $TMPGOPATH/src
 
-mkdir -p $TMPGOPATH/src/github.com/asdine/genji.js/src/bindings
-cp -r . $TMPGOPATH/src/github.com/asdine/genji.js/src/bindings/.
+mkdir -p $TMPGOPATH/src/github.com/genjidb/genji.js/src/bindings
+cp -r . $TMPGOPATH/src/github.com/genjidb/genji.js/src/bindings/.
 
 docker run \
     --rm \
     -v $TMPGOPATH:/go \
     -v `pwd`:/dist \
     -e "GOPATH=/go" \
-    tinygo/tinygo:0.12.0 tinygo build -o /dist/genji.wasm -target wasm --no-debug github.com/asdine/genji.js/src/bindings
+    tinygo/tinygo:0.13.0 tinygo build -o /dist/genji.wasm -target wasm --no-debug github.com/genjidb/genji.js/src/bindings
 
 mv genji.wasm ../../dist/.
