@@ -1,6 +1,7 @@
 {
   "version": "0.1.0-alpha",
   "license": "MIT",
+  "homepage": "https://genji.dev",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "repository": "git@github.com:genjidb/genji.js.git",
