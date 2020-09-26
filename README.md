@@ -13,7 +13,7 @@ Experimental wrapper around the [Genji](https://github.com/genjidb/genji) databa
 
 It's functional but, currently, the compiled WebAssembly file is too big (~3mb) to be objectively usable in production.
 
-The code is compatible with [TinyGo](https://github.com/tinygo-org/tinygo) and produces a 400kb wasm file but there are too many bugs in the v0.12.0, I will wait for the next version to give a try.
+The code is compatible with [TinyGo](https://github.com/tinygo-org/tinygo) and produces a 400kb wasm file but there are too many bugs in the v0.15.0, I will wait for the next version to give a try.
 
 ## Getting started
 
@@ -41,9 +41,11 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 module.exports = {
     ...
     plugins: [
-        new CopyWebpackPlugin([
-            { from: 'node_modules/@genjidb/genji/dist/genji.wasm' }
-        ])
+        new CopyWebpackPlugin({
+            patterns: [
+                { from: 'node_modules/@genjidb/genji/dist/genji.wasm' }
+            ]
+        })
     ]
 }
 ```

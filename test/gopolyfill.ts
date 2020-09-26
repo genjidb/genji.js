@@ -3,6 +3,7 @@ if (!global.crypto) {
     const nodeCrypto = require("crypto");
     // @ts-ignore
     global.crypto = {
+        // @ts-ignore
         getRandomValues(b) {
             nodeCrypto.randomFillSync(b);
         },
