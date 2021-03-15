@@ -18,7 +18,8 @@
     "build": "tsdx build",
     "test": "tsdx test",
     "lint": "tsdx lint",
-    "wasm": "cd ./src/bindings && GOOS=js GOARCH=wasm go build -o ../../dist/genji.wasm",
+    "gowasm": "cd ./src/bindings && GOOS=js GOARCH=wasm go build -o ../../dist/genji.wasm",
+    "wasm": "./scripts/buildgo.sh",
     "prepare": "yarn run wasm",
     "prepublish": "tsdx build",
     "postbuild": "yarn run wasm"

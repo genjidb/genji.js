@@ -1,9 +1,14 @@
 import Go from './go';
 
-export async function initDatabase(cfg: { url: string } = { url: 'genji.wasm' }) {
+export async function initDatabase(
+  cfg: { url: string } = { url: 'genji.wasm' }
+) {
   const go = new Go();
-  // @ts-ignore
-  const result = await WebAssembly.instantiateStreaming(fetch(cfg.url), go.importObject);
+  const result = await WebAssembly.instantiateStreaming(
+    fetch(cfg.url),
+    // @ts-ignore
+    go.importObject
+  );
   go.run(result.instance);
   return new Genji();
 }
@@ -14,12 +19,12 @@ export class Genji {
       openDB((err: any, id: number) => {
         if (err) {
           reject(err);
-          return
+          return;
         }
 
         resolve(new Database(id));
       });
-    })
+    });
   }
 }
 
@@ -31,21 +36,21 @@ class Database {
   }
 
   exec(query: string, ...args: any) {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       dbExec(this.id, query, args, (err: any) => {
         if (err) {
           reject(err);
         }
 
         resolve();
-      })
-    })
+      });
+    });
   }
 
   query(query: string, ...args: any): Stream {
     return new Stream(this.id, query, args);
   }
-};
+}
 
 class Stream {
   id: number;
@@ -62,7 +67,7 @@ class Stream {
 
   callback(err: any, document: Object) {
     if (err) {
-      return
+      return;
     }
 
     if (!document) {
@@ -71,28 +76,28 @@ class Stream {
   }
 
   forEach(cb: (document: Object) => void) {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       dbQuery(this.id, this.query, this.args, (err: any, document: Object) => {
         if (err) {
           reject(err);
-          return
+          return;
         }
 
         if (!document) {
           resolve();
-          return
+          return;
         }
 
         for (const fn of this.pipeline) {
           const ret = fn(document);
           if (!ret) {
-            return
+            return;
           }
           document = ret;
         }
 
-        cb(document)
-      })
+        cb(document);
+      });
     });
   }
 
@@ -101,6 +106,6 @@ class Stream {
   }
 
   filter(cb: (document: Object) => Boolean) {
-    this.pipeline.push((v) => cb(v) ? v : null);
+    this.pipeline.push(v => (cb(v) ? v : null));
   }
 }

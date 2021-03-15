@@ -8,4 +8,8 @@
         "GOOS": "js",
     },
     "go.installDependenciesWhenBuilding": false,
+    "gopls": {
+        "build.experimentalWorkspaceModule": true
+    },
+    "go.coverOnSave": true,
 }
