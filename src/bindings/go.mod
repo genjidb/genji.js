@@ -1,10 +1,7 @@
 module github.com/genjidb/genji.js/src/bindings
 
-go 1.15
+go 1.16
 
-require (
-	github.com/genjidb/genji v0.8.0
-	github.com/golang/protobuf v1.4.2 // indirect
-	golang.org/x/net v0.0.0-20200925080053-05aa5d4ee321 // indirect
-	golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d // indirect
-)
+require github.com/genjidb/genji v0.11.0
+
+replace github.com/genjidb/genji v0.11.0 => ../../../genji

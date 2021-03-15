@@ -3,15 +3,16 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
 	"syscall/js"
 
 	"github.com/genjidb/genji"
+	"github.com/genjidb/genji.js/src/bindings/memoryengine"
 	"github.com/genjidb/genji/document"
 	"github.com/genjidb/genji/document/encoding/custom"
-	"github.com/genjidb/genji/engine/memoryengine"
 )
 
 func main() {
@@ -65,7 +66,7 @@ type GenjiWrapper struct {
 // OpenDB opens a database and returns an id that can be used by the Javascript code to select
 // the right database when running a query.
 func (w *GenjiWrapper) OpenDB() (int, error) {
-	db, err := genji.New(memoryengine.NewEngine())
+	db, err := genji.New(context.Background(), memoryengine.NewEngine())
 	if err != nil {
 		return 0, err
 	}
