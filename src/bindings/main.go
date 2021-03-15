@@ -116,7 +116,11 @@ func (w *GenjiWrapper) Query(id int, cb func(m map[string]interface{}) error, qu
 		m := make(map[string]interface{})
 
 		err := d.Iterate(func(f string, v document.Value) error {
-			m[f] = v.V
+			vv, err := genjiValuesToJs(v)
+			if err != nil {
+				return err
+			}
+			m[f] = vv
 			return nil
 		})
 		if err != nil {

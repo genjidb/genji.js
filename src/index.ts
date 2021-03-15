@@ -35,9 +35,9 @@ class Database {
     this.id = id;
   }
 
-  exec(query: string, ...args: any) {
+  exec(query: string, ...args: any[]) {
     return new Promise<void>((resolve, reject) => {
-      dbExec(this.id, query, args, (err: any) => {
+      dbExec(this.id, query, args.map(jsValueToGenjiValue), (err: any) => {
         if (err) {
           reject(err);
         }
@@ -48,8 +48,27 @@ class Database {
   }
 
   query(query: string, ...args: any): Stream {
-    return new Stream(this.id, query, args);
+    return new Stream(this.id, query, args.map(jsValueToGenjiValue));
   }
+}
+
+function jsValueToGenjiValue(v: any) {
+  if (Object.prototype.toString.call(v) === '[object Object]') {
+    Object.keys(v).forEach((k, _) => {
+      v[k] = jsValueToGenjiValue(v[k]);
+    });
+
+    return {
+      _keys: Object.keys(v),
+      _object: v,
+    };
+  }
+
+  if (Array.isArray(v)) {
+    return v.map(val => jsValueToGenjiValue(val));
+  }
+
+  return v;
 }
 
 class Stream {

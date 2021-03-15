@@ -290,7 +290,7 @@ export default class {
         'syscall/js.finalizeRef': sp => {
           // Note: TinyGo does not support finalizers so this should never be
           // called.
-          console.error('syscall/js.finalizeRef not implemented');
+          // console.error('syscall/js.finalizeRef not implemented');
         },
 
         // func stringVal(value string) ref
