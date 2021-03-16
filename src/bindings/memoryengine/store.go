@@ -274,18 +274,14 @@ func (it *iterator) Next() {
 		} else {
 			it.curIdx++
 		}
-		// fmt.Printf("Current index %d\n", it.curIdx)
 
 		if !it.Valid() {
 			return
 		}
-		// fmt.Printf("%#v\n", it.Item())
 
 		if !it.Item().(*item).deleted {
 			return
 		}
-
-		// fmt.Println("Skipped deleted")
 	}
 }
 

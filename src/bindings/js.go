@@ -3,7 +3,7 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"syscall/js"
 
 	"github.com/genjidb/genji/document"
@@ -73,7 +73,7 @@ func jsValueToParam(value js.Value) (interface{}, error) {
 		}
 		v = fb
 	default:
-		return nil, fmt.Errorf("incompatible value %v", value)
+		return nil, errors.New("incompatible value " + value.String())
 	}
 
 	return v, nil

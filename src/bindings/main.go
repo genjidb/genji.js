@@ -5,14 +5,13 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
+	"strconv"
 	"sync"
 	"syscall/js"
 
 	"github.com/genjidb/genji"
 	"github.com/genjidb/genji.js/src/bindings/memoryengine"
 	"github.com/genjidb/genji/document"
-	"github.com/genjidb/genji/document/encoding/custom"
 )
 
 func main() {
@@ -70,7 +69,6 @@ func (w *GenjiWrapper) OpenDB() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	db.DB.Codec = custom.NewCodec()
 
 	w.m.Lock()
 	defer w.m.Unlock()
@@ -83,7 +81,7 @@ func (w *GenjiWrapper) OpenDB() (int, error) {
 func (w *GenjiWrapper) Exec(id int, query string, args []js.Value) error {
 	db, ok := w.dbs[id]
 	if !ok {
-		return fmt.Errorf("unknown database id %d", id)
+		return errors.New("unknown database id " + strconv.Itoa(id))
 	}
 
 	params, err := jsValuesToParams(args)
@@ -98,7 +96,7 @@ func (w *GenjiWrapper) Exec(id int, query string, args []js.Value) error {
 func (w *GenjiWrapper) Query(id int, cb func(m map[string]interface{}) error, query string, args []js.Value) error {
 	db, ok := w.dbs[id]
 	if !ok {
-		return fmt.Errorf("unknown database id %d", id)
+		return errors.New("unknown database id " + strconv.Itoa(id))
 	}
 
 	params, err := jsValuesToParams(args)
