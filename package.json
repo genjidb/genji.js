@@ -1,7 +1,10 @@
 {
-  "version": "0.1.0-alpha",
+  "name": "@genjidb/genji",
+  "author": "Asdine El Hrychy",
+  "version": "0.1.0",
   "license": "MIT",
   "homepage": "https://genji.dev",
+  "description": "Document-oriented, embedded, SQL database",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "repository": "git@github.com:genjidb/genji.js.git",
@@ -31,9 +34,6 @@
     "singleQuote": true,
     "trailingComma": "es5"
   },
-  "name": "@genjidb/genji",
-  "author": "Asdine El Hrychy",
-  "description": "Document-oriented, embedded, SQL database",
   "devDependencies": {
     "@types/jest": "^26.0.20",
     "husky": "^5.1.3",
