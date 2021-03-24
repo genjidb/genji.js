@@ -11,10 +11,6 @@
 
 Experimental wrapper around the [Genji](https://github.com/genjidb/genji) database.
 
-It's functional but, currently, the compiled WebAssembly file is too big (~3mb) to be objectively usable in production.
-
-The code is compatible with [TinyGo](https://github.com/tinygo-org/tinygo) and produces a 400kb wasm file but there are too many bugs in the v0.15.0, I will wait for the next version to give a try.
-
 ## Getting started
 
 Install Genji
@@ -69,7 +65,7 @@ run();
 
 ## Build from source
 
-Requires [Go](https://golang.org/dl/) >= 1.13 and [Node](https://nodejs.org/en/download/) >= 10
+Requires [Go](https://golang.org/dl/) >= 1.16 and [Node](https://nodejs.org/en/download/) >= 10
 
 ```bash
 yarn install
