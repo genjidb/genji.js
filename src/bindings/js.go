@@ -26,6 +26,8 @@ func jsValueToParam(value js.Value) (interface{}, error) {
 	var v interface{}
 
 	switch value.Type() {
+	case js.TypeNull:
+		v = nil
 	case js.TypeBoolean:
 		v = value.Bool()
 	case js.TypeString:

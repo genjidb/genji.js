@@ -44,13 +44,17 @@ describe('db', function() {
     const db = await genji.Database();
     let count = 0;
     await db.exec(
-      'CREATE TABLE foo; INSERT INTO foo (a, b) VALUES (?, ?)',
-      { a: 1, b: ['foo'] },
+      `CREATE TABLE foo;
+      INSERT INTO foo 
+        (a, b)
+      VALUES
+        (?, ?)`,
+      { a: 1, b: ['foo'], c: null },
       [1, true, [1], { b: false }]
     );
     await db.query('SELECT a, b FROM foo').forEach(val => {
       expect(val).toEqual({
-        a: { a: 1, b: ['foo'] },
+        a: { a: 1, b: ['foo'], c: null },
         b: [1, true, [1], { b: false }],
       });
       count++;
