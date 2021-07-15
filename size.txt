@@ -1,0 +1,16 @@
+Initial: 688k
+Remove expr.New<Type>Values: 686k -3k
+Remove String methods of operators: 683k -3k
+Refactor Eval method: 680k -3k
+Remove cmp types: 674k -6k
+Simplify arithmeric ops: 663k -11k
+Catalog refactor: 661k -2k
+Removed buffered literal: 649k -12k
+Use parseTokens and parseOptional everywhere: 645k -4k
+Add NeedsQuotes: 647k +2k
+Add Select / Update / Delete / Insert statements: 650k +3k
+Add On Conflict: 653k + 3k
+Add Clone: 672k +19k
+Add Prepare: 657k -15k
+Normalize index and table stores: 660k +3k
+Add sequences: 1.1M +440k

@@ -25,7 +25,7 @@ describe('db', function() {
       )
       .forEach(val => {
         expect(val).toEqual({
-          null: null,
+          NULL: null,
           '1': 1,
           '1.5': 1.5,
           true: true,
@@ -44,11 +44,13 @@ describe('db', function() {
     const db = await genji.Database();
     let count = 0;
     await db.exec(
-      `CREATE TABLE foo;
+      `
+      CREATE TABLE foo;
       INSERT INTO foo 
         (a, b)
       VALUES
-        (?, ?)`,
+        (?, ?)
+      `,
       { a: 1, b: ['foo'], c: null },
       [1, true, [1], { b: false }]
     );

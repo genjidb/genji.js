@@ -10,8 +10,8 @@ import (
 	"syscall/js"
 
 	"github.com/genjidb/genji"
-	"github.com/genjidb/genji.js/src/bindings/memoryengine"
 	"github.com/genjidb/genji/document"
+	"github.com/genjidb/genji/engine/memoryengine"
 )
 
 func main() {
